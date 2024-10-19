@@ -1,0 +1,215 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday Animation with Fireworks</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #0b1d3a; /* Bầu trời đêm */
+            color: white;
+            font-family: SimSun, sans-serif;
+        }
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 80px;
+            z-index: 10;
+            opacity: 0;
+            white-space: nowrap;
+            transition: opacity 1s;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="message"></div>
+    <audio autoplay="autoplay" loop="loop" preload="auto" src="http://music.163.com/song/media/outer/url?id=1337065812.mp3"></audio>
+
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        let ww = window.innerWidth;
+        let wh = window.innerHeight;
+        canvas.width = ww;
+        canvas.height = wh;
+
+        const stars = [];
+        const fireworks = [];
+        const particles = [];
+        const starCount = 100;
+
+        function createStars() {
+            for (let i = 0; i < starCount; i++) {
+                stars.push({
+                    x: Math.random() * ww,
+                    y: Math.random() * wh,
+                    radius: Math.random() * 2 + 1,
+                    alpha: Math.random() * 0.5 + 0.5,
+                    blink: Math.random() * 100
+                });
+            }
+        }
+
+        // Tạo pháo hoa với màu cam, đỏ, vàng
+        function createFirework() {
+            const firework = {
+                x: Math.random() * ww,
+                y: wh,
+                targetY: Math.random() * wh / 2,
+                radius: Math.random() * 3 + 2,
+                color: `hsl(${Math.random() * 30 + 10}, 100%, ${Math.random() * 50 + 50}%)`, // Đỏ, cam, vàng
+                dy: -(Math.random() * 6 + 4),
+                exploded: false,
+            };
+            fireworks.push(firework);
+        }
+
+        function createParticles(firework, shape = "normal") {
+            const particleCount = 30;
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: firework.x,
+                    y: firework.targetY,
+                    radius: Math.random() * 2 + 1,
+                    color: firework.color,
+                    alpha: 1,
+                    angle: Math.random() * Math.PI * 2,
+                    speed: Math.random() * 4 + 1,
+                    shape: shape
+                });
+            }
+        }
+
+        function drawStars() {
+            for (const star of stars) {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                ctx.fill();
+                ctx.closePath();
+                star.alpha = 0.5 + 0.5 * Math.sin(Date.now() / (100 + star.blink));
+            }
+        }
+
+        function drawFireworks() {
+            for (let i = fireworks.length - 1; i >= 0; i--) {
+                const fw = fireworks[i];
+                ctx.beginPath();
+                ctx.arc(fw.x, fw.y, fw.radius, 0, Math.PI * 2);
+                ctx.fillStyle = fw.color;
+                ctx.fill();
+                ctx.closePath();
+                fw.y += fw.dy;
+
+                if (fw.y <= fw.targetY && !fw.exploded) {
+                    fw.exploded = true;
+                    createParticles(fw, i % 2 === 0 ? "cat" : "cake"); // Hình bánh sinh nhật, mèo
+                    fireworks.splice(i, 1);
+                }
+            }
+        }
+
+        function drawParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                ctx.beginPath();
+
+                // Vẽ hình đặc biệt: mèo hoặc bánh sinh nhật
+                if (p.shape === "cat") {
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); // Hình tròn mô phỏng đầu mèo
+                } else if (p.shape === "cake") {
+                    ctx.rect(p.x, p.y, p.radius * 2, p.radius); // Hình chữ nhật mô phỏng bánh sinh nhật
+                } else {
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); // Hình pháo hoa bình thường
+                }
+
+                ctx.fillStyle = `rgba(255, 165, 0, ${p.alpha})`; // Màu cam đỏ vàng
+                ctx.fill();
+                ctx.closePath();
+
+                p.x += Math.cos(p.angle) * p.speed;
+                p.y += Math.sin(p.angle) * p.speed;
+                p.alpha -= 0.02;
+
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function drawMoon(phase) {
+            const moonX = ww / 2;
+            const moonY = wh / 4;
+            ctx.beginPath();
+            ctx.arc(moonX, moonY, 50, 0, Math.PI * 2);
+            ctx.fillStyle = "yellow"; // Màu vàng đặc trưng
+            ctx.fill();
+            ctx.closePath();
+
+            // Mô phỏng pha trăng
+            if (phase === 'new') {
+                ctx.fillStyle = "#0b1d3a"; // Bầu trời tối cho trăng mới
+                ctx.beginPath();
+                ctx.arc(moonX, moonY, 50, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, ww, wh);
+            drawStars();
+            drawMoon('new');
+            drawFireworks();
+            drawParticles();
+            requestAnimationFrame(render);
+        }
+
+        function showMessage(text, delay) {
+            return new Promise(resolve => {
+                const messageDiv = document.getElementById("message");
+                messageDiv.innerHTML = text; // Dùng innerHTML để hỗ trợ xuống dòng
+                messageDiv.style.opacity = 1;
+
+                setTimeout(() => {
+                    messageDiv.style.opacity = 0;
+                    setTimeout(resolve, 1000);
+                }, delay);
+            });
+        }
+
+        async function animateMessages() {
+            await showMessage("你好!", 2000);
+            await showMessage("今天我知道是对你特别的日.", 3000);
+            await showMessage("我只要说：", 2000);
+            await showMessage("祝你生日快乐<br>生日: 2004/03/21", 5000);
+        }
+
+        window.onload = () => {
+            createStars();
+            requestAnimationFrame(render);
+            animateMessages();
+            setInterval(createFirework, 1000);  // Tạo pháo hoa mới mỗi giây
+        };
+
+        window.addEventListener("resize", () => {
+            ww = window.innerWidth;
+            wh = window.innerHeight;
+            canvas.width = ww;
+            canvas.height = wh;
+        });
+    </script>
+</body>
+</html>
